@@ -33,11 +33,11 @@ def get_pic_list(html):
     return imgs
 
 
-def get_pic(imgs, html):
+def get_pic(imgs, html, doman):
     '''获取当前页面的图片,并保存'''
     soup = BeautifulSoup(html, 'html.parser')
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0"}
+        "User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36"}
     article_title = soup.find('span', id="thread_subject").get_text()
     create_dir('pic/{}'.format(article_title))
     temp = []
@@ -46,10 +46,13 @@ def get_pic(imgs, html):
         temp.append(src)
     # 返回的图片会有一张一样的在这里进行去重
     result = list(set(temp))
+    print('{}开始下载'.format(article_title))
     for src in result:
         file_name = src.split('/')[-1]
-        print('开始爬取图片：' + file_name)
+        print('开始爬取图片：{}, 地址为：{}'.format(file_name, src))
         try:
+            s = requests.session()
+            s.keep_alive = False
             r = requests.get(src, headers=headers, timeout=5)
             if r.status_code == 200:
                 # 下载文件
@@ -68,7 +71,7 @@ def get_pic(imgs, html):
         except Exception as e:
             print(e)
         print('-------------------------------------------------->')
-        time.sleep(10)
+        time.sleep(2)
 
 
 # 创建目录
@@ -91,14 +94,14 @@ def get_detail_url(url):
         url = doman + '/' + link
         html = download_page(url)
         d = get_pic_list(html)
-        get_pic(d, html)
+        get_pic(d, html, url)
 
 
 def test():
     url = 'http://thzu.net/forum-42-1.html'
     html = download_page(url)
     d = get_pic_list(html)
-    get_pic(d, html)
+    # get_pic(d, html)
 
 # 线程执行内容
 
@@ -108,25 +111,25 @@ def excute(url):
 
 
 def main():
-    excute('http://thzu.net/forum-42-5.html')
+    # excute('http://thzu.net/forum-42-19.html')
     # test()
-    # create_dir('pic')
-    # queue = [i for i in range(1, 10)]  # 页数
-    # threads = []
-    # while len(queue) > 0:
-    #         for thread in threads:
-    #             if not thread.is_alive():
-    #                 threads.remove(thread)
-    #         while len(threads) < 5 and len(queue) > 0:  # 设置线程数据为2;
-    #             cur_page = queue.pop(0)
-    #             url = 'http://thzu.net/forum-42-{}.html'.format(
-    #                 cur_page)
-    #             thread = threading.Thread(target=excute, args=(url,))
-    #             thread.setDaemon(True)
-    #             thread.start()
-    #             print('{}正在下载{}页'.format(
-    #                 threading.current_thread().name, cur_page))
-    #             threads.append(thread)
+    create_dir('pic')
+    queue = [i for i in range(1, 10)]  # 页数
+    threads = []
+    while len(queue) > 0:
+            for thread in threads:
+                if not thread.is_alive():
+                    threads.remove(thread)
+            while len(threads) < 5 and len(queue) > 0:  # 设置线程数据为2;
+                cur_page = queue.pop(0)
+                url = 'http://thzu.net/forum-42-{}.html'.format(
+                    cur_page)
+                thread = threading.Thread(target=excute, args=(url,))
+                thread.setDaemon(True)
+                thread.start()
+                print('{}正在下载{}页'.format(
+                    threading.current_thread().name, cur_page))
+                threads.append(thread)
 
 
 # 程序运行入口
