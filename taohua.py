@@ -1,5 +1,6 @@
 # 引入request库
 import requests
+from requests import exceptions
 
 # 引入BeautifulSoup
 from bs4 import BeautifulSoup
@@ -14,7 +15,6 @@ import threading
 import urllib.error
 
 from urllib.parse import urlparse
-
 
 
 '''下载页面'''
@@ -48,7 +48,13 @@ def get_pic(imgs, html):
     # 返回的图片会有一张一样的在这里进行去重
     result = list(set(temp))
     print('{}开始下载'.format(article_title))
+    # 下载异常次数
+    fail_num = 0
     for src in result:
+        if fail_num >= 5:
+            print('下载异常超过五次，自动跳过本次详情下载')
+            print('---------------------------------------------------------------->')
+            break
         file_name = src.split('/')[-1]
         print('开始爬取图片：{}, 地址为：{}'.format(file_name, src))
         # 检测图片是否存在如果存在直接跳过
@@ -58,7 +64,8 @@ def get_pic(imgs, html):
             continue
         try:
             real_src = get_real_pic(src)
-            r = requests.get(real_src, headers=img_headers(src), timeout=15)
+            r = requests.get(real_src, headers=img_headers(
+                src), timeout=get_timeout(src))
             if r.status_code == 200:
                 # 下载文件
                 with open('pic/{}/{}'.format(article_title, src.split('/')[-1]), "wb") as f:
@@ -67,14 +74,13 @@ def get_pic(imgs, html):
                 print('爬取完成:{}'.format(file_name))
             else:
                 print('图片：{},请求失败'.format(file_name))
-        except urllib.error.URLError as e:
-            print('下载图片异常：' + e.reason)
-        except requests.exceptions.ConnectTimeout:
-            print('request请求超时,图片:{}'.format(file_name))
-        except requests.exceptions.Timeout:
-            print('图片:{},下载超时'.format(file_name))
+        except exceptions.Timeout as e:
+            print('请求超时,图片:{}, 原因：{}'.format(file_name, str(e)))
+        except exceptions.HTTPError as e:
+            print('http请求错误:'+str(e))
         except Exception as e:
-            print(e)
+            fail_num += 1
+            print('程序异常Error：' + str(e))
         print('-------------------------------------------------->')
         time.sleep(3)
 
@@ -86,30 +92,46 @@ def get_real_pic(src):
     # TODO 第一种数据格式：/data/attachment/forum/201404/28/100214kjooc7hob4abbobj.jpg ，进行添加域名前缀
     return src
 
+# 根据域名优化下载时间
+
+
+def get_timeout(url):
+    time = 10
+    domain = get_domain(url)
+    if domain == 'www.yuoimg.com' or domain == 'yuoimg.com':
+        time = 15
+    return time
+
 
 ''' 设定请求Img的请求头'''
+
+
 def img_headers(url):
-     headers = {
+    headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36"}
-     domain = get_domain(url)
-     # https://www.yuoimg.com/u/20180922/10241966.jpg 或者 https://yuoimg.com/u/20180926/23520058.jpg  请求头
-     if domain == 'www.yuoimg.com' or domain == 'yuoimg.com':
+    domain = get_domain(url)
+    # https://www.yuoimg.com/u/20180922/10241966.jpg 或者 https://yuoimg.com/u/20180926/23520058.jpg  请求头
+    if domain == 'www.yuoimg.com' or domain == 'yuoimg.com':
         headers['authority'] = domain
         headers['method'] = 'GET'
         headers['path'] = urlparse(url).path
         headers['scheme'] = 'https'
         headers['cookie'] = '__cfduid=dacdbbeb06729375113c4d777fb8c82b41537943877'
         # headers['referer'] = 'http://thzu.net/thread-1879583-1-5.html'
-     return headers
+    return headers
 
-#根据URL获取域名
+# 根据URL获取域名
+
+
 def get_domain(url):
-    """Get domain name from url"""    
+    """Get domain name from url"""
     parsed_uri = urlparse(url)
     domain = '{uri.netloc}'.format(uri=parsed_uri)
     return domain
 
 # 创建目录
+
+
 def create_dir(name):
     if not os.path.exists(name):
         os.makedirs(name)
@@ -125,15 +147,14 @@ def get_detail_url(url):
         'a', class_='z')
     for a in links:
         link = a.get('href')
-        print('link:' + link)
-        url = doman + '/' + link
+        url = urlparse(url).scheme + "://" +doman + '/' + link
         html = download_page(url)
         d = get_pic_list(html)
         get_pic(d, html)
 
 
 def test():
-    url = 'http://thzu.net/thread-1881766-1-1.html'
+    url = 'http://thzu.net/thread-1881749-1-1.html'
     html = download_page(url)
     d = get_pic_list(html)
     get_pic(d, html)
@@ -146,10 +167,10 @@ def excute(url):
 
 
 def main():
-    # excute('http://thzu.net/forum-42-19.html')
+     #excute('http://thzu.net/forum-42-1.html')
     test()
     # create_dir('pic')
-    # queue = [i for i in range(1, 10)]  # 页数
+    # queue = [i for i in range(1, 5)]  # 页数
     # threads = []
     # while len(queue) > 0:
     #         for thread in threads:
