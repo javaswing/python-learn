@@ -11,8 +11,11 @@ import time
 
 import threading
 
-
 import urllib.error
+
+from urllib.parse import urlparse
+
+
 
 '''下载页面'''
 
@@ -33,11 +36,9 @@ def get_pic_list(html):
     return imgs
 
 
-def get_pic(imgs, html, doman):
+def get_pic(imgs, html):
     '''获取当前页面的图片,并保存'''
     soup = BeautifulSoup(html, 'html.parser')
-    headers = {
-        "User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36"}
     article_title = soup.find('span', id="thread_subject").get_text()
     create_dir('pic/{}'.format(article_title))
     temp = []
@@ -50,10 +51,14 @@ def get_pic(imgs, html, doman):
     for src in result:
         file_name = src.split('/')[-1]
         print('开始爬取图片：{}, 地址为：{}'.format(file_name, src))
+        # 检测图片是否存在如果存在直接跳过
+        if os.path.exists('pic/{}/{}'.format(article_title, src.split('/')[-1])):
+            print('图片：{} ,已存在,跳过下载！'.format(src.split('/')[-1]))
+            print('-------------------------------------------------->')
+            continue
         try:
-            s = requests.session()
-            s.keep_alive = False
-            r = requests.get(src, headers=headers, timeout=5)
+            real_src = get_real_pic(src)
+            r = requests.get(real_src, headers=img_headers(src), timeout=15)
             if r.status_code == 200:
                 # 下载文件
                 with open('pic/{}/{}'.format(article_title, src.split('/')[-1]), "wb") as f:
@@ -71,8 +76,38 @@ def get_pic(imgs, html, doman):
         except Exception as e:
             print(e)
         print('-------------------------------------------------->')
-        time.sleep(2)
+        time.sleep(3)
 
+
+''' 由目前的src进行分析并返回可下载的URL地址'''
+
+
+def get_real_pic(src):
+    # TODO 第一种数据格式：/data/attachment/forum/201404/28/100214kjooc7hob4abbobj.jpg ，进行添加域名前缀
+    return src
+
+
+''' 设定请求Img的请求头'''
+def img_headers(url):
+     headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36"}
+     domain = get_domain(url)
+     # https://www.yuoimg.com/u/20180922/10241966.jpg 或者 https://yuoimg.com/u/20180926/23520058.jpg  请求头
+     if domain == 'www.yuoimg.com' or domain == 'yuoimg.com':
+        headers['authority'] = domain
+        headers['method'] = 'GET'
+        headers['path'] = urlparse(url).path
+        headers['scheme'] = 'https'
+        headers['cookie'] = '__cfduid=dacdbbeb06729375113c4d777fb8c82b41537943877'
+        # headers['referer'] = 'http://thzu.net/thread-1879583-1-5.html'
+     return headers
+
+#根据URL获取域名
+def get_domain(url):
+    """Get domain name from url"""    
+    parsed_uri = urlparse(url)
+    domain = '{uri.netloc}'.format(uri=parsed_uri)
+    return domain
 
 # 创建目录
 def create_dir(name):
@@ -83,7 +118,7 @@ def create_dir(name):
 
 
 def get_detail_url(url):
-    doman = 'http://thzu.net/'
+    doman = get_domain(url)
     html = download_page(url)
     soup = BeautifulSoup(html, 'html.parser')
     links = soup.find('ul', class_='ml waterfall cl').find_all(
@@ -94,14 +129,14 @@ def get_detail_url(url):
         url = doman + '/' + link
         html = download_page(url)
         d = get_pic_list(html)
-        get_pic(d, html, url)
+        get_pic(d, html)
 
 
 def test():
-    url = 'http://thzu.net/forum-42-1.html'
+    url = 'http://thzu.net/thread-1881766-1-1.html'
     html = download_page(url)
     d = get_pic_list(html)
-    # get_pic(d, html)
+    get_pic(d, html)
 
 # 线程执行内容
 
@@ -112,24 +147,24 @@ def excute(url):
 
 def main():
     # excute('http://thzu.net/forum-42-19.html')
-    # test()
-    create_dir('pic')
-    queue = [i for i in range(1, 10)]  # 页数
-    threads = []
-    while len(queue) > 0:
-            for thread in threads:
-                if not thread.is_alive():
-                    threads.remove(thread)
-            while len(threads) < 5 and len(queue) > 0:  # 设置线程数据为2;
-                cur_page = queue.pop(0)
-                url = 'http://thzu.net/forum-42-{}.html'.format(
-                    cur_page)
-                thread = threading.Thread(target=excute, args=(url,))
-                thread.setDaemon(True)
-                thread.start()
-                print('{}正在下载{}页'.format(
-                    threading.current_thread().name, cur_page))
-                threads.append(thread)
+    test()
+    # create_dir('pic')
+    # queue = [i for i in range(1, 10)]  # 页数
+    # threads = []
+    # while len(queue) > 0:
+    #         for thread in threads:
+    #             if not thread.is_alive():
+    #                 threads.remove(thread)
+    #         while len(threads) < 5 and len(queue) > 0:  # 设置线程数据为2;
+    #             cur_page = queue.pop(0)
+    #             url = 'http://thzu.net/forum-42-{}.html'.format(
+    #                 cur_page)
+    #             thread = threading.Thread(target=excute, args=(url,))
+    #             thread.setDaemon(True)
+    #             thread.start()
+    #             print('{}正在下载{}页'.format(
+    #                 threading.current_thread().name, cur_page))
+    #             threads.append(thread)
 
 
 # 程序运行入口
