@@ -1,0 +1,24 @@
+第一种数据：/data/attachment/forum/201404/28/100214kjooc7hob4abbobj.jpg
+
+第二种：
+http://www.siimg.com/u/20180927/1656506.jpg
+http://www.x6img.com/u/20180924/14520083.jpg
+http://pic.thzpic.com/forum/201409/08/213158n5y225ino2ns9lki.jpg   会屏蔽爬虫
+('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+
+
+第三种：http://ww3.sinaimg.cn/large/005yyi5Jjw1enpw1k0iehj30970fxdhh.jpg  目前存在的15秒不能下载完数据
+
+https://www.yuoimg.com/u/20180922/10241966.jpg 下载图片慢  设置时间为20秒左右
+请求头如下：
+:authority:www.yuoimg.com
+:method:GET
+:path:/u/20180922/10244119.jpg
+:scheme:https
+accept:image/webp,image/apng,image/*,*/*;q=0.8
+accept-encoding:gzip, deflate, br
+accept-language:zh-CN,zh;q=0.9,zh-TW;q=0.8,en;q=0.7
+cookie:__cfduid=dacdbbeb06729375113c4d777fb8c82b41537943877
+referer:http://thzu.net/thread-1879583-1-5.html
+
+第四种：https://www.skuimg.com/u/20180927/10321276.jpg
