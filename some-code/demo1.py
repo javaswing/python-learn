@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 
 
 def download_page(url):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0"}
     r = requests.get(url, headers=headers)
     return r.text
 
@@ -15,10 +16,13 @@ def get_content(html, page):
     con_list = con.find_all('div', class_="article")
     for i in con_list:
         author = i.find('h2').string  # 获取作者名字
-        content = i.find('div', class_='content').find('span').get_text()  # 获取内容
+        content = i.find('div', class_='content').find(
+            'span').get_text()  # 获取内容
         stats = i.find('div', class_='stats')
-        vote = stats.find('span', class_='stats-vote').find('i', class_='number').string
-        comment = stats.find('span', class_='stats-comments').find('i', class_='number').string
+        vote = stats.find('span', class_='stats-vote').find('i',
+                                                            class_='number').string
+        comment = stats.find(
+            'span', class_='stats-comments').find('i', class_='number').string
         author_info = i.find('div', class_='articleGender')  # 获取作者 年龄，性别
         if author_info is not None:  # 非匿名用户
             class_list = author_info['class']
@@ -33,7 +37,8 @@ def get_content(html, page):
             gender = ''
             age = ''
 
-        save_txt(output.format(page, author, gender, age, vote, comment, content))
+        save_txt(output.format(page, author, gender,
+                 age, vote, comment, content))
 
 
 def save_txt(*args):
@@ -49,6 +54,7 @@ def main():
         url = 'https://qiushibaike.com/text/page/{}'.format(i)
         html = download_page(url)
         get_content(html, i)
+
 
 if __name__ == '__main__':
     main()
